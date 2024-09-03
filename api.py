@@ -4,11 +4,13 @@ load_dotenv()
 from fastapi import FastAPI, Query
 from typing import List, Literal
 from models import Song, SongsResponse
-import llm
-import spotify
+from llm import LLMEngine
+from spotify import SpotifyEngine
 
 
 app = FastAPI(title='SoundScribe API')
+llm = LLMEngine()
+spotify = SpotifyEngine()
 
 
 @app.get('/',
@@ -59,10 +61,11 @@ def create_spotify_playlist(name: str, visibility: Literal['public', 'private'],
     
     playlist_data = spotify.create_playlist(name=name, visibility=visibility, 
                                             access_token=access_token)
-    songs_added_successfully = spotify.add_songs(playlist_id=playlist_data['id'], songs=songs, 
+    song_uris = spotify.add_songs(playlist_id=playlist_data['id'], songs=songs, 
                                                  access_token=access_token)
     
-    if songs_added_successfully:
+    if song_uris is not None:
+        playlist_data['tracks']['items'] = song_uris
         return {'message': 'success', 'playlist': playlist_data}
     
     return {'message': 'failure'}
